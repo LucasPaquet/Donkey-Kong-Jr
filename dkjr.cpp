@@ -87,9 +87,13 @@ typedef struct
 
 int main(int argc, char* argv[])
 {
-	int evt;
 
+	// Creation de la fenetre Graphique
 	ouvrirFenetreGraphique();
+
+	//Creation des différents threads
+	pthread_create(&threadCle, NULL, FctThreadCle, NULL); // Cle
+	pthread_create(&threadEvenements, NULL, FctThreadEvenements, NULL); // evenement
 
 	afficherCage(2);
 	afficherCage(3);
@@ -97,7 +101,7 @@ int main(int argc, char* argv[])
 
 	afficherRireDK();
 
-	afficherCle(3);
+	
 
 	afficherCroco(11, 2);
 	afficherCroco(17, 1);
@@ -117,27 +121,9 @@ int main(int argc, char* argv[])
 	afficherEchec(1);
 	afficherScore(1999);
 
-	while (1)
-	{
-	    evt = lireEvenement();
+	while(1);
 
-	    switch (evt)
-	    {
-		case SDL_QUIT:
-			exit(0);
-		case SDLK_UP:
-			printf("KEY_UP\n");
-			break;
-		case SDLK_DOWN:
-			printf("KEY_DOWN\n");
-			break;
-		case SDLK_LEFT:
-			printf("KEY_LEFT\n");
-			break;
-		case SDLK_RIGHT:
-			printf("KEY_RIGHT\n");
-	    }
-	}
+	
 }
 
 // -------------------------------------
@@ -177,3 +163,73 @@ void afficherGrilleJeu()
    printf("\n");   
 }
 
+void* FctThreadCle(void *)
+{
+	struct timespec temps = { 0, 700000000 };
+
+	while(1)
+	{
+		for (int i = 1; i < 5; ++i)
+		{
+			afficherCle(i);
+
+			if (i == 1)
+			{
+				setGrilleJeu(0,1,CLE, pthread_self());
+			}
+			else
+			{
+				setGrilleJeu(0,1,VIDE, pthread_self());
+			}
+
+			nanosleep(&temps, NULL);
+			effacerCarres(3,12,2,3);
+			
+		}
+		for (int i = 3; i > 1; --i)
+		{
+			afficherCle(i);
+
+			if (i == 1)
+			{
+				setGrilleJeu(0,1,CLE, pthread_self());
+			}
+			else
+			{
+				setGrilleJeu(0,1,VIDE, pthread_self());
+			}
+
+			nanosleep(&temps, NULL);
+			effacerCarres(3,12,2,3);
+
+
+		}
+	}
+}
+
+void* FctThreadEvenements(void *)
+{
+	int evt;
+
+	while (1)
+	{
+    evt = lireEvenement();
+
+    switch (evt)
+    {
+		case SDL_QUIT:
+			exit(0);
+		case SDLK_UP:
+			printf("KEY_UP\n");
+			break;
+		case SDLK_DOWN:
+			printf("KEY_DOWN\n");
+			break;
+		case SDLK_LEFT:
+			printf("KEY_LEFT\n");
+			break;
+		case SDLK_RIGHT:
+			printf("KEY_RIGHT\n");
+	   }
+	}
+}
