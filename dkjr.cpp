@@ -68,6 +68,7 @@ int  delaiEnnemis = 4000;
 int  positionDKJr = 1;
 int  evenement = AUCUN_EVENEMENT;
 int etatDKJr;
+int etatCage;
 
 struct sigaction sigAct;
 
@@ -115,12 +116,11 @@ int main(int argc, char* argv[])
 	pthread_mutex_init(&mutexGrilleJeu, NULL);
 	pthread_create(&threadDKJr, NULL, FctThreadDKJr, NULL);
 
+	// DK
+	pthread_mutex_init(&mutexDK, NULL);
+	pthread_cond_init(&condDK, NULL);
+	pthread_create(&threadDK, NULL, FctThreadDK, NULL);
 
-	afficherCage(2);
-	afficherCage(3);
-	afficherCage(4);
-
-	
 
 	afficherCroco(11, 2);
 	afficherCroco(17, 1);
@@ -422,16 +422,47 @@ void* FctThreadDKJr(void* p)
 							positionDKJr--;
 
 							// partie récupération de cle (a retravailler)
+							// peut etre faire positionDKJr-- apres le if
 							if (positionDKJr == 3)
 							{
 								setGrilleJeu(1, positionDKJr, DKJR);
 								if (grilleJeu[0][1].type == CLE)
 								{
+									pthread_mutex_lock(&mutexDK);
+									MAJDK = true;
+									pthread_mutex_unlock(&mutexDK);
+									
+									pthread_mutex_lock(&mutexDK);
+									etatCage++;
+									pthread_mutex_unlock(&mutexDK);
+									pthread_cond_signal(&condDK);
+
 									afficherDKJr(7, (positionDKJr * 2) + 7, 10);
+
+									nanosleep(&dureeJump, NULL);
+									etatDKJr = LIBRE_BAS;
+									setGrilleJeu(1, positionDKJr);
+									effacerCarres(3, 10, 3, 3);
+
+									positionDKJr = 1;
+									setGrilleJeu(3, positionDKJr, DKJR);
+									afficherDKJr(11, (positionDKJr * 2) + 7, ((positionDKJr - 1) % 4) + 1);
 								}
 								else
 								{
-									afficherDKJr(7, (positionDKJr * 2) + 7, 9);
+									afficherDKJr(7, (positionDKJr * 2) + 7, 9); // 9 = dk rate la key
+									nanosleep(&dureeJump, NULL);
+									effacerCarres(5,12,3,2);
+									etatDKJr = LIBRE_BAS;
+									positionDKJr = 1;
+
+									// animation dk ds le buisson
+									afficherDKJr(11, 7, 13);
+									nanosleep(&dureeJump, NULL);
+									effacerCarres(11,7,2,2);
+
+									setGrilleJeu(3, positionDKJr, DKJR);
+									afficherDKJr(11, (positionDKJr * 2) + 7, ((positionDKJr - 1) % 4) + 1);
 								}
 							}
 							else
@@ -482,14 +513,6 @@ void* FctThreadDKJr(void* p)
 								afficherDKJr(5, (positionDKJr * 2) + 7, 7);
 								etatDKJr = LIANE_HAUT;
 							}
-							else
-							{
-								// Lorsque DK Jr saute sans s’accrocher à une liane
-								// DK Jr reste simplement en l’air pendant 1,4 seconde après quoi il revient sur le sol.
-								// Durant cette attente de 1,4 seconde, ThreadDKJr libère mutexGrilleJeu pour permettre
-								// aux autres threads de continuer à accéder au tableau grilleJeu, mais il conserve mutexEvenement.
-							
-							}
 						}
 						
 						
@@ -525,6 +548,63 @@ void* FctThreadDKJr(void* p)
 		//afficherGrilleJeu();
 	}
 	pthread_exit(0);
+}
+
+void* FctThreadDK(void*)
+{
+	struct timespec dureeSourire = {0, 700000000}; // duree du sourire lorsque la cage est libere
+
+	while(1)
+	{
+		afficherCage(1);
+		afficherCage(2);
+		afficherCage(3);
+		afficherCage(4);
+		etatCage = 0;
+
+		pthread_mutex_lock(&mutexDK); 
+		//verifier la varialble majdk
+	 	while (etatCage < 4) 
+	 	{
+	 		pthread_cond_wait(&condDK, &mutexDK); 
+	 		pthread_mutex_lock(&mutexGrilleJeu);
+	 		switch(etatCage)
+	 		{
+	 			case 1:
+	 				effacerCarres(2,7,2,2);
+	 				break;
+	 			case 2:
+	 				effacerCarres(4,7,2,2);
+	 				break;
+	 			case 3:
+	 				effacerCarres(4,9,2,2);
+	 				break;
+	 			
+	 		}
+
+	 		pthread_mutex_unlock(&mutexGrilleJeu);
+	 		
+	 	}
+
+		pthread_mutex_unlock(&mutexDK);
+		// Durant l’ouverture d’une partie de la cage ou la chute de DK Jr dans le buisson, ThreadDKJr
+		// conserve mutexGrille. Ceci a pour effet de faire attendre les autres sprites du jeu.
+
+		pthread_mutex_lock(&mutexGrilleJeu);
+		effacerCarres(2,9,2,2);
+
+		afficherRireDK();
+
+		nanosleep(&dureeSourire, NULL);
+
+		effacerCarres(3,8,2,2);
+
+		pthread_mutex_unlock(&mutexGrilleJeu);
+
+	}
+
+	pthread_exit(0);
+
 }
 
 
