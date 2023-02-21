@@ -333,6 +333,8 @@ void* FctThreadDKJr(void* p)
 	sigemptyset(&mask);
 	sigaddset(&mask, SIGQUIT);
 	sigaddset(&mask, SIGINT);
+	sigaddset(&mask, SIGCHLD);
+	sigaddset(&mask, SIGHUP);
 	sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
 	setGrilleJeu(3, 1, DKJR); 
@@ -356,6 +358,7 @@ void* FctThreadDKJr(void* p)
 				case SDLK_LEFT:
 					if (positionDKJr > 1)
 					{
+						
 						// On fixe à VIDE le champ type de la cellule grilleJeu[3][positionDKJr]
 						setGrilleJeu(3, positionDKJr);
 						// on efface l’image de
@@ -377,6 +380,7 @@ void* FctThreadDKJr(void* p)
 					}
 					break;
 				case SDLK_RIGHT:
+						
 					// pour verifier que le joueur ne dépasse pas le cadre de la fenetre
 					if (positionDKJr < 7)
 					{
@@ -392,7 +396,6 @@ void* FctThreadDKJr(void* p)
 					
 					if (grilleJeu[2][positionDKJr].type == 3)
 					{
-						printf("COLLISION de ddk\n");
 						pthread_kill(grilleJeu[2][positionDKJr].tid, SIGUSR1);
 						effacerCarres(11, (positionDKJr * 2) + 7, 2, 2);
 						setGrilleJeu(3, positionDKJr);
@@ -428,6 +431,16 @@ void* FctThreadDKJr(void* p)
 							// aux autres threads de continuer à accéder au tableau grilleJeu, mais il conserve mutexEvenement.
 							pthread_mutex_unlock(&mutexGrilleJeu);
 							nanosleep(&dureeJump, NULL); // 1,4 sec
+							if (grilleJeu[3][positionDKJr].type == CROCO)
+							{
+								pthread_kill(grilleJeu[3][positionDKJr].tid, SIGUSR2);
+								effacerCarres(10, (positionDKJr * 2) + 7, 2, 2);
+								setGrilleJeu(2, positionDKJr);
+								pthread_mutex_unlock(&mutexEvenement);
+								pthread_mutex_unlock(&mutexGrilleJeu);
+
+								pthread_exit(0);
+							}
 							pthread_mutex_lock(&mutexGrilleJeu);
 
 							setGrilleJeu(2, positionDKJr);
@@ -446,6 +459,16 @@ void* FctThreadDKJr(void* p)
 				switch(evenement)
 				{
 					case SDLK_DOWN:
+						if (grilleJeu[3][positionDKJr].type == CROCO)
+						{
+							pthread_kill(grilleJeu[3][positionDKJr].tid, SIGUSR2);
+							effacerCarres(10, (positionDKJr * 2) + 7, 2, 2);
+							setGrilleJeu(2, positionDKJr);
+							pthread_mutex_unlock(&mutexEvenement);
+							pthread_mutex_unlock(&mutexGrilleJeu);
+
+							pthread_exit(0);
+						}
 						// pour faire descendre dkJr de sa lianes
 						setGrilleJeu(2, positionDKJr);
 						effacerCarres(10, (positionDKJr * 2) + 7, 2, 2);
@@ -504,7 +527,8 @@ void* FctThreadDKJr(void* p)
 									pthread_cond_signal(&condDK);
 
 									afficherDKJr(7, (positionDKJr * 2) + 7, 10);
-
+									setGrilleJeu(7,positionDKJr); // pour ne pas se faire avoir par la hitbox
+									afficherGrilleJeu();
 									// saut ou dkjr recupere la cle
 									nanosleep(&dureeFinalJump, NULL); // 0,5 sec
 									etatDKJr = LIBRE_BAS;
@@ -524,6 +548,7 @@ void* FctThreadDKJr(void* p)
 								{
 									// si dkjr rate la cle
 									afficherDKJr(7, (positionDKJr * 2) + 7, 9); // 9 = dk rate la key
+									setGrilleJeu(7,positionDKJr); // pour ne pas se faire avoir par la hitbox
 									nanosleep(&dureeJump, NULL);
 									effacerCarres(5,12,3,2);
 									etatDKJr = LIBRE_BAS;
@@ -557,6 +582,7 @@ void* FctThreadDKJr(void* p)
 						break;
 
 					case SDLK_UP:
+						
 						if (positionDKJr == 3 || positionDKJr == 4)
 						{
 							setGrilleJeu(1, positionDKJr);
@@ -566,6 +592,16 @@ void* FctThreadDKJr(void* p)
 
 							pthread_mutex_unlock(&mutexGrilleJeu);
 							nanosleep(&dureeJump, NULL); // 1,4 sec
+							if (grilleJeu[1][positionDKJr].type == CROCO)
+							{
+								pthread_kill(grilleJeu[1][positionDKJr].tid, SIGUSR2);
+								effacerCarres(5, (positionDKJr * 2) + 7, 2, 2);
+								setGrilleJeu(0, positionDKJr);
+								pthread_mutex_unlock(&mutexEvenement);
+								pthread_mutex_unlock(&mutexGrilleJeu);
+
+								pthread_exit(0);
+							}
 							pthread_mutex_lock(&mutexGrilleJeu);
 
 							setGrilleJeu(0, positionDKJr);
@@ -603,6 +639,16 @@ void* FctThreadDKJr(void* p)
 				switch(evenement)
 				{
 					case SDLK_DOWN:
+						if (grilleJeu[1][positionDKJr].type == CROCO)
+						{
+							pthread_kill(grilleJeu[1][positionDKJr].tid, SIGUSR2);
+							effacerCarres(5, (positionDKJr * 2) + 7, 2, 2);
+							setGrilleJeu(0, positionDKJr);
+							pthread_mutex_unlock(&mutexEvenement);
+							pthread_mutex_unlock(&mutexGrilleJeu);
+
+							pthread_exit(0);
+						}
 						// pour faire descendre dkJr de sa lianes
 						setGrilleJeu(0, positionDKJr);
 						effacerCarres(5, (positionDKJr * 2) + 7, 2, 2);
@@ -615,7 +661,7 @@ void* FctThreadDKJr(void* p)
 		}
 		pthread_mutex_unlock(&mutexGrilleJeu);
 		pthread_mutex_unlock(&mutexEvenement);
-		afficherGrilleJeu();
+		// afficherGrilleJeu();
 	}
 	pthread_exit(0);
 }
@@ -765,46 +811,88 @@ void* FctThreadCroco(void*)
 	//printf("salu : %d \n", *(int*)pthread_getspecific(keySpec));
 	sigset_t mask;
 
-	S_CROCO pos = {false, 2};
+	S_CROCO pos = {true, 2};
 
 	// on enleve le masque sur 3 snignaux
 	sigemptyset(&mask);
-	sigaddset(&mask, SIGCHLD);
 	sigaddset(&mask, SIGUSR2);
-	sigaddset(&mask, SIGHUP);
 	sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
 	struct timespec delayAvance = {0, 700000000};
 
-	// croco qui marche de gauche a droite en haut
-	while(pos.position < 8)
-	{
-		setGrilleJeu(1, pos.position, CROCO, pthread_self());
-		afficherCroco(pos.position * 2 + 7, (pos.position - 1) % 2 + 1);
-		nanosleep(&delayAvance, NULL);
-		setGrilleJeu(1, pos.position);
-		effacerCarres(8, pos.position * 2 + 7, 1, 1);
-		pos.position++;
-	}
-
-	// croco qui tombe
-	// pas besoin de le mettre dans le grille de jeu car il en ai en dehors, on ne fait que l'affiche tomber
-	afficherCroco(pos.position * 2 + 7, 3);
-	nanosleep(&delayAvance, NULL);
-	effacerCarres(9, pos.position * 2 + 7, 1, 1);
-	pos.position--;
-	
-	// croco qui marche de droite a gauche en bas
 	while(pos.position > 1)
 	{
-
-		setGrilleJeu(3, pos.position, CROCO, pthread_self());
-		afficherCroco(pos.position * 2 + 7, (pos.position - 1) % 2 + 4);
-		nanosleep(&delayAvance, NULL);
-		setGrilleJeu(3, pos.position);
-		effacerCarres(12, pos.position * 2 + 7, 1, 1);
-		pos.position--;
+		if (pos.position == 8)
+		{
+			afficherCroco(pos.position * 2 + 7, 3);
+			nanosleep(&delayAvance, NULL);
+			effacerCarres(9, pos.position * 2 + 7, 1, 1);
+			pos.position--;
+			pos.haut = false;
+			continue;
+		}
+		if (pos.haut == true)
+		{
+			if (grilleJeu[1][pos.position].type == 1)
+			{
+				printf("COLLISION\n");
+				kill(getpid(), SIGHUP);
+				pthread_exit(0);
+			}
+			setGrilleJeu(1, pos.position, CROCO, pthread_self());
+			afficherCroco(pos.position * 2 + 7, (pos.position - 1) % 2 + 1);
+			nanosleep(&delayAvance, NULL);
+			setGrilleJeu(1, pos.position);
+			effacerCarres(8, pos.position * 2 + 7, 1, 1);
+			pos.position++;
+		}
+		else // si c'est pas en haut c'est forcement en bas
+		{
+			if (grilleJeu[3][pos.position].type == 1)
+			{
+				printf("COLLISION\n");
+				kill(getpid(), SIGCHLD);
+				pthread_exit(0);
+			}
+			setGrilleJeu(3, pos.position, CROCO, pthread_self());
+			afficherCroco(pos.position * 2 + 7, (pos.position - 1) % 2 + 4);	
+			nanosleep(&delayAvance, NULL);
+			setGrilleJeu(3, pos.position);
+			effacerCarres(12, pos.position * 2 + 7, 1, 1);
+			pos.position--;
+		}
 	}
+	// *** Version sans le pos.haut ***
+	// // croco qui marche de gauche a droite en haut
+	// while(pos.position < 8)
+	// {
+	// 	setGrilleJeu(1, pos.position, CROCO, pthread_self());
+	// 	afficherCroco(pos.position * 2 + 7, (pos.position - 1) % 2 + 1);
+	// 	nanosleep(&delayAvance, NULL);
+	// 	setGrilleJeu(1, pos.position);
+	// 	effacerCarres(8, pos.position * 2 + 7, 1, 1);
+	// 	pos.position++;
+	// }
+
+	// // croco qui tombe
+	// // pas besoin de le mettre dans le grille de jeu car il en ai en dehors, on ne fait que l'affiche tomber
+	// afficherCroco(pos.position * 2 + 7, 3);
+	// nanosleep(&delayAvance, NULL);
+	// effacerCarres(9, pos.position * 2 + 7, 1, 1);
+	// pos.position--;
+	
+	// // croco qui marche de droite a gauche en bas
+	// while(pos.position > 1)
+	// {
+
+	// 	setGrilleJeu(3, pos.position, CROCO, pthread_self());
+	// 	afficherCroco(pos.position * 2 + 7, (pos.position - 1) % 2 + 4);
+	// 	nanosleep(&delayAvance, NULL);
+	// 	setGrilleJeu(3, pos.position);
+	// 	effacerCarres(12, pos.position * 2 + 7, 1, 1);
+	// 	pos.position--;
+	// }
+
 	pthread_exit(0);
 }
 
@@ -887,18 +975,6 @@ void HandlerSIGALRM(int sig)
 	#endif
 }
 
-// ThreadDKJr vérifie dans grilleJeu si
-// aucun corbeau n’est présent dans la ligne 2 à cette position horizontale. Si c’est le cas,
-// ThreadDKJr envoie le signal SIGUSR1 au ThreadCorbeau qui gère ce corbeau
-void HandlerSIGUSR1(int sig)
-{
-	// je dois changer avec pos par keySpec
-	// effacerCarres(9, pos * 2 + 8, 2, 1);
-	// setGrilleJeu(2, pos);
-
-	pthread_exit(0);
-}
-
 // si DK Jr se
 // trouve à la position horizontale dans laquelle doit être placé ce corbeau, corbeau envoie SIGINT a dkjr
 void HandlerSIGINT(int sig)
@@ -914,15 +990,45 @@ void HandlerSIGINT(int sig)
 
 void HandlerSIGHUP(int sig)
 {
-	// printf("SIGUSR1 pour le thread (%d)\n", pthread_self());
+	setGrilleJeu(1, positionDKJr);
+	effacerCarres(7, (positionDKJr * 2) + 7, 2, 2);
+	if (etatDKJr == LIBRE_BAS)
+	{
+		pthread_mutex_unlock(&mutexEvenement);
+	}
+	pthread_exit(0);
 }
 
 void HandlerSIGCHLD(int sig)
 {
-	// printf("SIGUSR1 pour le thread (%d)\n", pthread_self());
+	setGrilleJeu(3, positionDKJr);
+	effacerCarres(11, (positionDKJr * 2) + 7, 2, 2);
+	if (etatDKJr == LIBRE_BAS)
+	{
+		pthread_mutex_unlock(&mutexEvenement);
+	}
+	pthread_exit(0);
 }
 
+// ThreadDKJr vérifie dans grilleJeu si
+// aucun corbeau n’est présent dans la ligne 2 à cette position horizontale. Si c’est le cas,
+// ThreadDKJr envoie le signal SIGUSR1 au ThreadCorbeau qui gère ce corbeau
+void HandlerSIGUSR1(int sig)
+{
+	// je dois changer avec pos par keySpec
+	// effacerCarres(9, pos * 2 + 8, 2, 1);
+	// setGrilleJeu(2, pos);
+
+	pthread_exit(0);
+}
+
+// ThreadDKJr vérifie dans
+// grilleJeu si aucun croco n’est présent à sa position horizontale. Si c’est le cas, ThreadDKJr
+// envoie le signal SIGUSR2 au ThreadCroco qui gère ce croco
 void HandlerSIGUSR2(int sig)
 {
-	// printf("SIGUSR1 pour le thread (%d)\n", pthread_self());
+	// je dois changer avec pos par keySpec
+	// effacerCarres(9, pos * 2 + 8, 2, 1);
+	// setGrilleJeu(2, pos);
+	pthread_exit(0);
 }
