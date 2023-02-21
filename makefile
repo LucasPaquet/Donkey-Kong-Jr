@@ -10,7 +10,7 @@ ALL: $(PROGRAMS)
 
 dkjr:	dkjr.cpp $(OBJS)
 	echo Creation de dkjr...
-	$(CC) dkjr.cpp -o dkjr $(OBJS)  -lrt -lpthread -lSDL
+	$(CC) dkjr.cpp -o dkjr $(OBJS)  -lrt -lpthread -lSDL #-D DEBUG
 
 $(PRESENTATION)/presentation.o:	$(PRESENTATION)/presentation.c $(PRESENTATION)/presentation.h
 		echo Creation de presentation.o ...

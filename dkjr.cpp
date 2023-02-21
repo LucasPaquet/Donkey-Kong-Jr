@@ -92,13 +92,24 @@ int main(int argc, char* argv[])
 {
 	sigset_t mask;
 
+	// armeùent des signaux
+
+	// armement du SIGQUIT
 	sigemptyset(&sigAct.sa_mask);
 	sigAct.sa_handler = HandlerSIGQUIT;
 	sigAct.sa_flags = 0;
 	sigaction(SIGQUIT, &sigAct, NULL);
 
+	// armeùent de ALARM
+	sigemptyset(&sigAct.sa_mask);
+	sigAct.sa_handler = HandlerSIGALRM;
+	sigAct.sa_flags = 0;
+	sigaction(SIGALRM, &sigAct, NULL);
+
+	// masquage des signaux ("pour tout les threads")
 	sigemptyset(&mask);
 	sigaddset(&mask, SIGQUIT);
+	sigaddset(&mask, SIGALRM);
 	sigprocmask(SIG_BLOCK, &mask, NULL);
 
 
@@ -125,6 +136,9 @@ int main(int argc, char* argv[])
 	pthread_mutex_init(&mutexScore, NULL);
 	pthread_cond_init(&condScore, NULL);
 	pthread_create(&threadScore, NULL, FctThreadScore, NULL);
+
+	// Ennemis
+	pthread_create(&threadEnnemis, NULL, FctThreadEnnemis, NULL);
 
 
 	afficherCroco(11, 2);
@@ -651,8 +665,89 @@ void* FctThreadScore(void*)
 	pthread_exit(0);
 }
 
+// --- THREAD SUR LES OPS ---
+
+void* FctThreadEnnemis(void*)
+{
+	sigset_t mask;
+
+	// on enleve le masque sur SIGALRM
+	sigemptyset(&mask);
+	sigaddset(&mask, SIGALRM);
+	sigprocmask(SIG_UNBLOCK, &mask, NULL);
+
+	alarm(15); // On arme l'alarme ici la premiere fois car après c'est l'alarm qui le fait
+
+	// pour avoir une rng différente entre les sessions
+	srand(time(NULL));
+
+	pthread_t thread;
+
+	struct timespec delaySpawnEnnemis = {delaiEnnemis / 1000, delaiEnnemis * 100000};
+
+	while(1)
+	{
+		nanosleep(&delaySpawnEnnemis, NULL);
+
+		// on met a jour le delay d'apparition des ennemis
+		delaySpawnEnnemis = {delaiEnnemis / 1000, delaiEnnemis * 100000};
+
+		if ((rand() % 2) == 0)
+		{
+			pthread_create(&thread,NULL,FctThreadCroco, NULL);
+
+		}
+		else
+		{
+			pthread_create(&thread,NULL,FctThreadCorbeau, NULL);
+		}
+
+	}
+
+	pthread_exit(0);
+}
+
+void* FctThreadCroco(void*)
+{
+	printf("Je suis le thread CROCO\n");
+	pthread_exit(0);
+}
+void* FctThreadCorbeau(void*)
+
+{
+	printf("Je suis le thread CORBEAU\n");
+	pthread_exit(0);
+}
+
+
 // SIGNAUX
 void HandlerSIGQUIT(int sig)
 {
 	// printf("SIGUSR1 pour le thread (%d)\n", pthread_self());
+}
+
+
+// La difficulté du jeu augmente avec le temps. Toutes les 15 secondes, le signal
+// SIGALRM est envoyé à ThreadEnnemis. Cette alarme est initialisée au départ dans
+// ThreadEnnemis. Dans le handler de SIGALRM, on diminue de 0,25 seconde le délai stocké dans la
+// variable delaiEnnemis, puis on réinitialise l’alarme à 15 secondes. On cesse de réinitialiser l’alarme
+// dans le handler de SIGALRM quand la variable delaiEnnemis stocke un délai de 2,5 secondes qui
+// est le délai minimum.
+void HandlerSIGALRM(int sig)
+{
+	if (delaiEnnemis > 2500)
+	{
+		delaiEnnemis = delaiEnnemis - 250;
+		alarm(15);
+	
+	}
+	#ifdef DEBUG
+	else
+	{
+		printf("(DEBUG)Delay maximum atteint (%d)\n", delaiEnnemis);
+	}
+	printf("(DEBUG)Réduction du delay de 0,25 sec : %d\n", delaiEnnemis);
+
+	#endif
+	
 }
