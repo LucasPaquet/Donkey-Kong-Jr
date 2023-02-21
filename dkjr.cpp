@@ -121,6 +121,11 @@ int main(int argc, char* argv[])
 	pthread_cond_init(&condDK, NULL);
 	pthread_create(&threadDK, NULL, FctThreadDK, NULL);
 
+	// Score
+	pthread_mutex_init(&mutexScore, NULL);
+	pthread_cond_init(&condScore, NULL);
+	pthread_create(&threadScore, NULL, FctThreadScore, NULL);
+
 
 	afficherCroco(11, 2);
 	afficherCroco(17, 1);
@@ -136,7 +141,7 @@ int main(int argc, char* argv[])
 	effacerCarres(9, 10, 2, 1);
 
 	afficherEchec(1);
-	afficherScore(1999);
+	afficherScore(0);
 
 	while(1);
 
@@ -564,10 +569,11 @@ void* FctThreadDK(void*)
 
 		pthread_mutex_lock(&mutexDK); 
 		//verifier la varialble majdk
-	 	while (etatCage < 4) 
+	 	while (etatCage < 4 && MAJDK == false) 
 	 	{
 	 		pthread_cond_wait(&condDK, &mutexDK); 
 	 		pthread_mutex_lock(&mutexGrilleJeu);
+	 		// on enleve la partie de la cage
 	 		switch(etatCage)
 	 		{
 	 			case 1:
@@ -582,9 +588,20 @@ void* FctThreadDK(void*)
 	 			
 	 		}
 
+	 		// Lorsque DK Jr ouvre une partie de la grille de la cage, ThreadDKJr augmente le contenu de
+			// la variable score de 10 et assigne à la variable MAJScore la valeur true, puis il réveille
+			// ThreadScore qui était en attente sur la variable de condition condScore.
+			pthread_mutex_lock(&mutexScore);
+	 		score = score + 10;
+	 		MAJDK = false;
+	 		pthread_mutex_unlock(&mutexScore);
+	 		pthread_cond_signal(&condScore);
+
 	 		pthread_mutex_unlock(&mutexGrilleJeu);
 	 		
 	 	}
+
+
 
 		pthread_mutex_unlock(&mutexDK);
 		// Durant l’ouverture d’une partie de la cage ou la chute de DK Jr dans le buisson, ThreadDKJr
@@ -594,6 +611,16 @@ void* FctThreadDK(void*)
 		effacerCarres(2,9,2,2);
 
 		afficherRireDK();
+
+		// Lorsque la grille est totalement ouverte et que DK rigole, ThreadDK augmente le contenu
+		// de la variable score de 10 et assigne à la variable MAJScore la valeur true. puis il réveille
+		// ThreadScore qui était en attente sur la variable de condition condScore.
+		pthread_mutex_lock(&mutexScore);
+		score = score + 10;
+		MAJDK = false;
+		pthread_mutex_unlock(&mutexScore);
+		pthread_cond_signal(&condScore);
+
 
 		nanosleep(&dureeSourire, NULL);
 
@@ -607,6 +634,22 @@ void* FctThreadDK(void*)
 
 }
 
+void* FctThreadScore(void*)
+{
+	while(1)
+	{
+		pthread_mutex_lock(&mutexScore); 
+	 	while (MAJScore == false) 
+	 	{
+	 		pthread_cond_wait(&condScore, &mutexScore); 
+			afficherScore(score);
+	 	}
+	 	MAJScore = false;
+		pthread_mutex_unlock(&mutexScore);
+	}
+
+	pthread_exit(0);
+}
 
 // SIGNAUX
 void HandlerSIGQUIT(int sig)
