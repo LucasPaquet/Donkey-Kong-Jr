@@ -93,6 +93,12 @@ int main(int argc, char* argv[])
 {
 	sigset_t mask;
 
+	// Creation de la fenetre Graphique
+	ouvrirFenetreGraphique();
+
+	// fixe à VIDE le champ type et à 0 le champ tid de toutes les cellules du tableau global grilleJeu. 
+	initGrilleJeu();
+
 	// armement des signaux
 
 	// armement du SIGQUIT
@@ -149,29 +155,34 @@ int main(int argc, char* argv[])
 
 	sigprocmask(SIG_BLOCK, &mask, NULL);
 
+	// initialise les variables de condition
+	pthread_cond_init(&condDK, NULL);
+	pthread_cond_init(&condScore, NULL);
+
+	// initialisation des mutex
+	pthread_mutex_init(&mutexDK, NULL);
+	pthread_mutex_init(&mutexEvenement, NULL); 
+	pthread_mutex_init(&mutexScore, NULL);
+	pthread_mutex_init(&mutexGrilleJeu, NULL);
+
 	// Creation de la cle specifique pour les ennemis
 	pthread_key_create(&keySpec, DestructeurVS);
 
-
-
-	// Creation de la fenetre Graphique
-	ouvrirFenetreGraphique();
-
 	//Creation des différents threads
-	pthread_create(&threadCle, NULL, FctThreadCle, NULL); // Cle
+
+	// cle
+	pthread_create(&threadCle, NULL, FctThreadCle, NULL);
 
 	//evenement
-	pthread_mutex_init(&mutexEvenement, NULL); 
+
 	pthread_create(&threadEvenements, NULL, FctThreadEvenements, NULL);
 
 	// DK
-	pthread_mutex_init(&mutexDK, NULL);
-	pthread_cond_init(&condDK, NULL);
+	
 	pthread_create(&threadDK, NULL, FctThreadDK, NULL);
 
 	// Score
-	pthread_mutex_init(&mutexScore, NULL);
-	pthread_cond_init(&condScore, NULL);
+	
 	pthread_create(&threadScore, NULL, FctThreadScore, NULL);
 
 	// Ennemis
@@ -180,7 +191,6 @@ int main(int argc, char* argv[])
 	afficherScore(0);
 
 	//DKjr
-	pthread_mutex_init(&mutexGrilleJeu, NULL);
 
 	while(echec < 3)
 	{
@@ -241,15 +251,17 @@ void* FctThreadCle(void *)
 		for (int i = 1; i < 5; ++i)
 		{
 			afficherCle(i);
-
+			pthread_mutex_lock(&mutexGrilleJeu);
 			if (i == 1)
 			{
+
 				setGrilleJeu(0,1,CLE, pthread_self());
 			}
 			else
 			{
 				setGrilleJeu(0,1,VIDE, pthread_self());
 			}
+			pthread_mutex_unlock(&mutexGrilleJeu);
 
 			nanosleep(&temps, NULL);
 			effacerCarres(3,12,2,3);
@@ -546,14 +558,14 @@ void* FctThreadDKJr(void* p)
 									pthread_mutex_unlock(&mutexDK);
 									pthread_cond_signal(&condDK);
 
-									afficherDKJr(7, (positionDKJr * 2) + 7, 10);
-									setGrilleJeu(7,positionDKJr); // pour ne pas se faire avoir par la hitbox
+									afficherDKJr(6, (positionDKJr * 2) + 7, 10);
+									setGrilleJeu(1,positionDKJr); // pour ne pas se faire avoir par la hitbox
 
 									// saut ou dkjr recupere la cle
 									nanosleep(&dureeFinalJump, NULL); // 0,5 sec
 									etatDKJr = LIBRE_BAS;
-									setGrilleJeu(1, positionDKJr);
-									effacerCarres(3, 10, 3, 3);
+									effacerCarres(3, 11, 3, 2);
+									afficherCage(4);
 
 									// anti-spawnKill
 									if(grilleJeu[2][0].tid != 0)
@@ -570,10 +582,10 @@ void* FctThreadDKJr(void* p)
 									if(grilleJeu[3][3].tid != 0)
 										pthread_kill(grilleJeu[3][3].tid, SIGUSR2);
 
-									// animation dkjr ds le buisson
-									// afficherDKJr(11, 7, 13);
-									// nanosleep(&dureeJump, NULL);
-									// effacerCarres(11,7,2,2);
+									// animation dkjr ds les airs
+									afficherDKJr(11, 7, 11);
+									nanosleep(&dureeFinalJump, NULL);
+									effacerCarres(6, 10,2,3);
 
 									positionDKJr = 1;
 									setGrilleJeu(3, positionDKJr, DKJR);
@@ -583,15 +595,13 @@ void* FctThreadDKJr(void* p)
 								{
 									// si dkjr rate la cle
 									afficherDKJr(7, (positionDKJr * 2) + 7, 9); // 9 = dk rate la key
-									setGrilleJeu(7,positionDKJr); // pour ne pas se faire avoir par la hitbox
-									nanosleep(&dureeJump, NULL);
+									setGrilleJeu(1,positionDKJr); // pour ne pas se faire avoir par la hitbox
+									nanosleep(&dureeFinalJump, NULL);
 									effacerCarres(5,12,3,2);
-									etatDKJr = LIBRE_BAS;
-									positionDKJr = 1;
 
 									// animation dkjr ds le buisson
 									afficherDKJr(11, 7, 13);
-									nanosleep(&dureeJump, NULL);
+									nanosleep(&dureeFinalJump, NULL);
 									effacerCarres(11,7,2,2);
 									pthread_mutex_unlock(&mutexGrilleJeu);
 									pthread_mutex_unlock(&mutexEvenement);
@@ -696,7 +706,9 @@ void* FctThreadDKJr(void* p)
 		}
 		pthread_mutex_unlock(&mutexGrilleJeu);
 		pthread_mutex_unlock(&mutexEvenement);
+		#ifdef DEBUG
 		afficherGrilleJeu();
+		#endif
 	}
 	pthread_exit(0);
 }
@@ -729,7 +741,7 @@ void* FctThreadDK(void*)
 	 				effacerCarres(4,7,2,2);
 	 				break;
 	 			case 3:
-	 				effacerCarres(4,9,2,2);
+	 				effacerCarres(2,9,2,2);
 	 				break;
 	 			
 	 		}
@@ -872,7 +884,9 @@ void* FctThreadCroco(void*)
 			pthread_mutex_lock(&mutexGrilleJeu);
 			if (grilleJeu[1][pos->position].type == 1)
 			{
+				#ifdef DEBUG
 				printf("COLLISION croco\n");
+				#endif
 				kill(getpid(), SIGHUP);
 				pthread_mutex_unlock(&mutexGrilleJeu);
 				pthread_exit(0);
@@ -896,7 +910,9 @@ void* FctThreadCroco(void*)
 			pthread_mutex_lock(&mutexGrilleJeu);
 			if (grilleJeu[3][pos->position].type == 1)
 			{
-				printf("COLLISION\n");
+				#ifdef DEBUG
+				printf("COLLISION CROCO\n");
+				#endif
 				kill(getpid(), SIGCHLD);
 				pthread_mutex_unlock(&mutexGrilleJeu);
 				pthread_exit(0);
@@ -972,7 +988,9 @@ void* FctThreadCorbeau(void*)
 		pthread_mutex_lock(&mutexGrilleJeu);
 		if (grilleJeu[2][*pos].type == 1)
 		{
+			#ifdef DEBUG
 			printf("COLLISION CORBEAU\n");
+			#endif
 			pthread_mutex_unlock(&mutexGrilleJeu);
 			kill(getpid(), SIGINT);
 			pthread_exit(0);
