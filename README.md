@@ -1,5 +1,7 @@
 # Donkey Kong Jr
 
+![image](https://user-images.githubusercontent.com/113984975/224064857-1f13434d-f341-4154-8396-70dd33edf6de.png)
+
 ## Aperçu général du jeu
 
 Donkey Kong Jr (DK Jr) doit libérer Donkey Kong (DK) qui a été capturé par Mario. Pour libérer
