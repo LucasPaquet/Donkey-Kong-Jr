@@ -325,6 +325,8 @@ void* FctThreadEvenements(void *)
 	   nanosleep(&temps, NULL);
 
 	   evenement = AUCUN_EVENEMENT;
+
+	   pthread_mutex_unlock(&mutexEvenement);
 	}
 }
 
@@ -389,7 +391,16 @@ void* FctThreadDKJr(void* p)
 				case SDLK_LEFT:
 					if (positionDKJr > 1)
 					{
-						
+						if (grilleJeu[3][positionDKJr-1].type == CROCO) // verification que dkjr ne va pas sur un croco
+						{
+							pthread_kill(grilleJeu[3][positionDKJr-1].tid, SIGUSR2);
+							effacerCarres(11, (positionDKJr * 2) + 7, 2, 2);
+							setGrilleJeu(3, positionDKJr);
+							pthread_mutex_unlock(&mutexEvenement);
+							pthread_mutex_unlock(&mutexGrilleJeu);
+
+							pthread_exit(0);
+						}
 						// On fixe à VIDE le champ type de la cellule grilleJeu[3][positionDKJr]
 						setGrilleJeu(3, positionDKJr);
 						// on efface l’image de
@@ -415,6 +426,16 @@ void* FctThreadDKJr(void* p)
 					// pour verifier que le joueur ne dépasse pas le cadre de la fenetre
 					if (positionDKJr < 7)
 					{
+						if (grilleJeu[3][positionDKJr+1].type == CROCO) // verification que dkjr ne va pas sur un croco
+						{
+							pthread_kill(grilleJeu[3][positionDKJr+1].tid, SIGUSR2);
+							effacerCarres(11, (positionDKJr * 2) + 7, 2, 2);
+							setGrilleJeu(3, positionDKJr);
+							pthread_mutex_unlock(&mutexEvenement);
+							pthread_mutex_unlock(&mutexGrilleJeu);
+
+							pthread_exit(0);
+						}
 						// meme logique du case SDLK_LEFT mais en incrémentant postitionDKJr pour aller a droite
 						setGrilleJeu(3, positionDKJr);
 						effacerCarres(11, (positionDKJr * 2) + 7, 2, 2);
@@ -537,6 +558,16 @@ void* FctThreadDKJr(void* p)
 					case SDLK_LEFT:
 						if (positionDKJr >= 3)
 						{
+							if (grilleJeu[1][positionDKJr-1].type == CROCO) // verification que dkjr ne va pas sur un croco
+							{
+								pthread_kill(grilleJeu[1][positionDKJr-1].tid, SIGUSR2);
+								effacerCarres(7, (positionDKJr * 2) + 7, 2, 2);
+								setGrilleJeu(1, positionDKJr);
+								pthread_mutex_unlock(&mutexEvenement);
+								pthread_mutex_unlock(&mutexGrilleJeu);
+
+								pthread_exit(0);
+							}
 							setGrilleJeu(1, positionDKJr);
 							effacerCarres(7, (positionDKJr * 2) + 7, 2, 2);
 							positionDKJr--;
@@ -618,6 +649,16 @@ void* FctThreadDKJr(void* p)
 					case SDLK_RIGHT:
 						if (positionDKJr < 7)
 						{
+							if (grilleJeu[1][positionDKJr+1].type == CROCO) // verification que dkjr ne va pas sur un croco
+							{
+								pthread_kill(grilleJeu[1][positionDKJr+1].tid, SIGUSR2);
+								effacerCarres(7, (positionDKJr * 2) + 7, 2, 2);
+								setGrilleJeu(1, positionDKJr);
+								pthread_mutex_unlock(&mutexEvenement);
+								pthread_mutex_unlock(&mutexGrilleJeu);
+
+								pthread_exit(0);
+							}
 							setGrilleJeu(1, positionDKJr);
 							effacerCarres(7, (positionDKJr * 2) + 7, 2, 2);
 							positionDKJr++;
@@ -853,8 +894,7 @@ void* FctThreadEnnemis(void*)
 
 void* FctThreadCroco(void*)
 {
-	// on a rajouter -fpermissive dans le makefile pour pouvoir compiler 
-	S_CROCO *pos = malloc(sizeof(S_CROCO));
+	S_CROCO *pos = (S_CROCO*)malloc(sizeof(S_CROCO));
   *pos = {true, 2};
 	pthread_setspecific(keySpec, (void*)pos);
 
@@ -970,7 +1010,7 @@ void* FctThreadCorbeau(void*)
 {
 
 	// on a rajouter -fpermissive dans le makefile pour pouvoir compiler 
-	int *pos = malloc(sizeof(int));
+	int *pos = (int*)malloc(sizeof(int));
   *pos = 0;
 	pthread_setspecific(keySpec, (void*)pos);
 
