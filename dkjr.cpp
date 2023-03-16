@@ -323,6 +323,8 @@ void* FctThreadEvenements(void *)
 	   kill(getpid(), SIGQUIT);
 
 	   nanosleep(&temps, NULL);
+		
+	   pthread_mutex_lock(&mutexEvenement);
 
 	   evenement = AUCUN_EVENEMENT;
 
