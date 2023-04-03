@@ -250,8 +250,8 @@ void* FctThreadCle(void *)
 	{
 		for (int i = 1; i < 5; ++i)
 		{
-			afficherCle(i);
 			pthread_mutex_lock(&mutexGrilleJeu);
+			afficherCle(i);
 			if (i == 1)
 			{
 
@@ -269,8 +269,8 @@ void* FctThreadCle(void *)
 		}
 		for (int i = 3; i > 1; --i)
 		{
+			pthread_mutex_lock(&mutexGrilleJeu);
 			afficherCle(i);
-
 			if (i == 1)
 			{
 				setGrilleJeu(0,1,CLE, pthread_self());
@@ -279,7 +279,7 @@ void* FctThreadCle(void *)
 			{
 				setGrilleJeu(0,1,VIDE, pthread_self());
 			}
-
+			pthread_mutex_unlock(&mutexGrilleJeu);
 			nanosleep(&temps, NULL);
 			effacerCarres(3,12,2,3);
 
@@ -323,6 +323,8 @@ void* FctThreadEvenements(void *)
 	   kill(getpid(), SIGQUIT);
 
 	   nanosleep(&temps, NULL);
+		
+	   pthread_mutex_lock(&mutexEvenement);
 
 	   evenement = AUCUN_EVENEMENT;
 
@@ -534,7 +536,19 @@ void* FctThreadDKJr(void* p)
 			case DOUBLE_LIANE_BAS:
 				switch(evenement)
 				{
+
 					case SDLK_DOWN:
+						// verifie croco en bas
+						if (grilleJeu[3][positionDKJr].type == 2)
+						{
+							pthread_kill(grilleJeu[3][positionDKJr].tid, SIGUSR2);
+							effacerCarres(10, (positionDKJr * 2) + 7, 2, 2);
+							setGrilleJeu(2, positionDKJr);
+							pthread_mutex_unlock(&mutexEvenement);
+							pthread_mutex_unlock(&mutexGrilleJeu);
+
+							pthread_exit(0);
+						}
 						// pour faire descendre dkJr de sa lianes
 						setGrilleJeu(2, positionDKJr);
 						effacerCarres(10, (positionDKJr * 2) + 7, 2, 2);
@@ -543,11 +557,22 @@ void* FctThreadDKJr(void* p)
 						etatDKJr = LIBRE_BAS;
 						break;
 					case SDLK_UP:
+						// verifie croco en haut
+						if (grilleJeu[1][positionDKJr].type == 2)
+						{
+							pthread_kill(grilleJeu[1][positionDKJr].tid, SIGUSR2);
+							effacerCarres(10, (positionDKJr * 2) + 7, 2, 2);
+							setGrilleJeu(2, positionDKJr);
+							pthread_mutex_unlock(&mutexEvenement);
+							pthread_mutex_unlock(&mutexGrilleJeu);
+
+							pthread_exit(0);
+						}
 						// pour faire monter dkjr dans LIBRES_HAUT
 						setGrilleJeu(2, positionDKJr);
 						effacerCarres(10, (positionDKJr * 2) + 7, 2, 2);
 						setGrilleJeu(1, positionDKJr, DKJR);
-						afficherDKJr(7, (positionDKJr * 2) + 7, ((positionDKJr - 1) % 4) + 1);
+						afficherDKJr(7, (positionDKJr * 2) + 7, 6);
 						etatDKJr = LIBRE_HAUT;
 						break;
 				}
@@ -630,6 +655,12 @@ void* FctThreadDKJr(void* p)
 									nanosleep(&dureeFinalJump, NULL);
 									effacerCarres(5,12,3,2);
 
+									// animation chute
+									afficherDKJr(7,7,12);
+									nanosleep(&dureeFinalJump, NULL);
+									effacerCarres(6,11,3,2);
+
+
 									// animation dkjr ds le buisson
 									afficherDKJr(11, 7, 13);
 									nanosleep(&dureeFinalJump, NULL);
@@ -710,6 +741,17 @@ void* FctThreadDKJr(void* p)
 						
 						break;
 					case SDLK_DOWN:
+						//verifie si corbeau en bas
+						if (grilleJeu[2][positionDKJr].type == 3)
+						{
+							pthread_kill(grilleJeu[2][positionDKJr].tid, SIGUSR1);
+							effacerCarres(7, (positionDKJr * 2) + 7, 2, 2);
+							setGrilleJeu(1, positionDKJr);
+							pthread_mutex_unlock(&mutexEvenement);
+							pthread_mutex_unlock(&mutexGrilleJeu);
+
+							pthread_exit(0);
+						}
 						if (positionDKJr == 7)
 						{
 							setGrilleJeu(1, positionDKJr);
@@ -900,7 +942,7 @@ void* FctThreadCroco(void*)
 
 	sigset_t mask;
 
-	// on enleve le masque sur 3 snignaux
+	// on enleve le masque sur 3 signaux
 	sigemptyset(&mask);
 	sigaddset(&mask, SIGUSR2);
 	sigprocmask(SIG_UNBLOCK, &mask, NULL);
@@ -972,36 +1014,6 @@ void* FctThreadCroco(void*)
 		}
 		
 	}
-	// *** Version sans le pos.haut ***
-	// // croco qui marche de gauche a droite en haut
-	// while(pos.position < 8)
-	// {
-	// 	setGrilleJeu(1, pos.position, CROCO, pthread_self());
-	// 	afficherCroco(pos.position * 2 + 7, (pos.position - 1) % 2 + 1);
-	// 	nanosleep(&delayAvance, NULL);
-	// 	setGrilleJeu(1, pos.position);
-	// 	effacerCarres(8, pos.position * 2 + 7, 1, 1);
-	// 	pos.position++;
-	// }
-
-	// // croco qui tombe
-	// // pas besoin de le mettre dans le grille de jeu car il en ai en dehors, on ne fait que l'affiche tomber
-	// afficherCroco(pos.position * 2 + 7, 3);
-	// nanosleep(&delayAvance, NULL);
-	// effacerCarres(9, pos.position * 2 + 7, 1, 1);
-	// pos.position--;
-	
-	// // croco qui marche de droite a gauche en bas
-	// while(pos.position > 1)
-	// {
-
-	// 	setGrilleJeu(3, pos.position, CROCO, pthread_self());
-	// 	afficherCroco(pos.position * 2 + 7, (pos.position - 1) % 2 + 4);
-	// 	nanosleep(&delayAvance, NULL);
-	// 	setGrilleJeu(3, pos.position);
-	// 	effacerCarres(12, pos.position * 2 + 7, 1, 1);
-	// 	pos.position--;
-	// }
 
 	pthread_exit(0);
 }
